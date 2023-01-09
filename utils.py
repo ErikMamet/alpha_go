@@ -42,7 +42,7 @@ def create_game_boards(moves: list):
             next_move = -2
             winner = get_winner(board.result())
         else: next_move = moves[len(moves)-remaining_moves]
-        all_states.append([copy.deepcopy(board), None, color_playing, next_move, remaining_moves])
+        all_states.append([copy.deepcopy(board._board), None, color_playing, next_move, remaining_moves])
     for state in all_states:
         state[1] = winner
     return True, all_states
@@ -53,7 +53,7 @@ def get_winner(result: str):
     else: winner = 0 #Deuce 
     return winner
 
-def create_all_boards(to_save: bool):
+def create_all_boards():
     '''Create all valid boards'''
     folder = os.listdir(path)
     invalid_moves = 0
@@ -61,7 +61,7 @@ def create_all_boards(to_save: bool):
     valid_games = 0
     i = 0
     for file in folder:
-        if (i % 500 == 0):
+        if (i % 100 == 0):
             print(i)
             print("Valid boards : ", valid_games)
             print("Invalid boards : ", invalid_games)
@@ -90,3 +90,5 @@ def save_board(board: Goban.Board, n_game: str, n_state: str):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with(open(filename, "wb" )) as fp:
         pickle.dump(board, fp)
+
+create_all_boards()
