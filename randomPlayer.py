@@ -29,6 +29,8 @@ class myPlayer(PlayerInterface):
         # Get the list of all possible moves
         moves = self._board.legal_moves() # Dont use weak_legal_moves() here!
 
+        
+
         # Let's plot some board probabilities
         import go_plot
         # Generate random proabibilities
@@ -49,7 +51,6 @@ class myPlayer(PlayerInterface):
         # We plot them
         go_plot.plot_play_probabilities(self._board, probabilities)
         #plt.show()
-
 
         move = np.random.choice(range(82), p=probabilities)
         # Correct number for PASS
