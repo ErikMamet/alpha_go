@@ -12,8 +12,9 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 '''
-This dataset was sourced from [insert link] on 03/01/2023. It has been pre-processed by (see [insert final pre process file name])
-This Dataset class works on a datset structured in the following way :
+This dataset was sourced from https://www.eugeneweb.com/pipermail/computer-go/2015-December/008353.html on 03/01/2023.
+It has been pre-processed by (see utils.py)
+This Dataset class works on a dataset structured in the following way :
 
 - Dataset_dir
     - game_1
@@ -51,13 +52,11 @@ class Go9x9_Dataset(Dataset):
     def calc_game_board_id(self, idx):
         count = 0
         game_id = -1
-        while count < idx :
-            count += self.nb_states_games[game_id]
+        while count <= idx :
             game_id += 1
+            count += self.nb_states_games[game_id]
         move_id = idx - count + self.nb_states_games[game_id]
         return game_id, move_id
-
-
 
     def __len__(self):
         return sum(self.nb_states_games)
@@ -66,6 +65,7 @@ class Go9x9_Dataset(Dataset):
         
         game_id, board_id = self.calc_game_board_id(idx)
         board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id))
+        print(board_path)
         with open(board_path, 'rb') as handle:
             Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
             Board = np.reshape(Board, (9,9))
@@ -73,12 +73,12 @@ class Go9x9_Dataset(Dataset):
         if last_player_color == -1:
             fused_board = np.zeros((9,9), dtype='int8')
         if last_player_color == 1:
-
             fused_board = np.ones((9,9), dtype='int8')
         
         for i in range(self.size_of_input):
-            if i<self.nb_states_games[game_id]:
+            if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
+                print(board_path)
                 with open(board_path, 'rb') as handle:
                     Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
                     Old_Board = np.reshape(Old_Board, (9,9))
@@ -87,9 +87,8 @@ class Go9x9_Dataset(Dataset):
             else :
                 fused_board = np.stack(( fused_board, np.zeros((9,9)) ))
 
-
-        enocoder = OneHotEncoder(range(-2,81))
-        label = winner_color*np.exp((1-number_moves_left)/9)*enocoder.fit_transform(next_move)
+        encoder = OneHotEncoder(range(-2,81))
+        label = winner_color*np.exp((1-number_moves_left)/9)*encoder.fit_transform(next_move)
 
         if self.transform:
             Board = self.transform(Board)
@@ -100,4 +99,13 @@ class Go9x9_Dataset(Dataset):
 if __name__ == "__main__":
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
+    print(D.__getitem__(0))
+
+    #Erreur ligne 86 et 88 sur le np.stack - à quoi sert le fused_board j'ai pas capté ?
+    #On importe deux fois la première board, on peut éventuellement faire le premier fuse avant la boucle for
+    #et faire la boucle for en range (1:self.size_of_input)
+
+
+
+
     

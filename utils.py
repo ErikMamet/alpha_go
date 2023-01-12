@@ -31,7 +31,7 @@ def create_game_boards(moves: list):
     board = Goban.Board()
     remaining_moves = len(moves)
     color_playing = 1
-    all_states = [[board, None, color_playing, moves[0], remaining_moves]]
+    all_states = [[copy.deepcopy(board._board), None, color_playing, moves[0], remaining_moves]]
     for move in moves:
         color_playing = color_playing * -1
         valid = board.push(move) 
@@ -71,9 +71,9 @@ def create_all_boards():
             is_game_valid = True
             is_game_valid, all_states = create_game_boards(moves)
             if (is_game_valid):
-                valid_games += 1
                 for j in range(len(all_states)):
                     save_board(all_states[j], valid_games, j)
+                valid_games += 1
             else:
                 invalid_games += 1
         else: 
@@ -84,7 +84,7 @@ def create_all_boards():
     print("Invalid moves : ", invalid_moves)
     return valid_games, invalid_games, invalid_moves
 
-def save_board(board: Goban.Board, n_game: str, n_state: str):
+def save_board(board, n_game: str, n_state: str):
     '''Save one board with pickle'''
     filename = "data/dataset/game_{}/state_{}".format(n_game, n_state)
     os.makedirs(os.path.dirname(filename), exist_ok=True)
