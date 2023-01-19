@@ -2,14 +2,15 @@ import torch
 import numpy as np
 import os 
 import os.path as osp
-import resnet18
+import go_cnn
 import dataset_manager as data_m
 
 ###
 # Data & hyperparams
 ###
+SIZE_OF_INPUT = 5+1 
 
-net = resnet18.resnet18()
+net = go_cnn.GoCNN(SIZE_OF_INPUT )
 dataset = data_m.Go9x9_Dataset(data_dir="./data/mini_dataset")
 
 train_size = int(0.8 * len(dataset))
@@ -18,6 +19,7 @@ train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size
 
 train_loader =  torch.utils.data.DataLoader(dataset, batch_size=32, drop_last=True)
 test_loader = torch.utils.data.DataLoader(dataset, batch_size=32, drop_last=True)
+
 
 ###
 # Utils
@@ -104,6 +106,7 @@ def training(model, max_epochs, lr , dataloader, testing_freq = 5):
         avg_train_loss = 0
         l = 0
         for elem, lab in dataloader :
+            print("elem size ", elem.size())
             optimiser.zero_grad()
 
             #passing batch data to gpu
@@ -134,5 +137,5 @@ def training(model, max_epochs, lr , dataloader, testing_freq = 5):
 
 
 if __name__ == "__main__":
-    model = resnet18.resnet18()
+    model = net
     training(model=model, max_epochs=5, lr= 0.1, dataloader=train_loader)

@@ -30,7 +30,6 @@ This Dataset class works on a dataset structured in the following way :
 where each state_nb contains a pickle file containing [Board, COLOR_VICTORY, next_move ,NB_MOVES_LEFT]
 '''
 
-
 def calc_nb_state_games(dataset_dir, nb_games):
     res = []
     for i in range(nb_games):
@@ -86,21 +85,25 @@ class Go9x9_Dataset(Dataset):
                 fused_board = np.vstack(( fused_board, Old_Board))
             else :
                 fused_board = np.vstack(( fused_board, np.zeros((1,9,9)) ))
+            print("fused board shape ", np.shape(fused_board))
 
         one_hot = np.zeros(82)
         one_hot[next_move] = 1
         label = winner_color*np.exp((1-number_moves_left)/9)*one_hot
 
         if self.transform:
-            Board = self.transform(Board)
+            fused_board = np.swapaxes(fused_board, 0, 1 )
+            fused_board = np.swapaxes(fused_board, 1, 2 )
+            fused_board = self.transform(fused_board)
+            print("fused board shape tensor ", fused_board.size())
 
-        return fused_board, label
+        return fused_board.type(torch.FloatTensor) , label
 
 
 if __name__ == "__main__":
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
-    print(D.__getitem__(10))
+    print(D.__getitem__(10)[0].size())
 
     #Erreur ligne 86 et 88 sur le np.stack - à quoi sert le fused_board j'ai pas capté ?
     #On importe deux fois la première board, on peut éventuellement faire le premier fuse avant la boucle for
