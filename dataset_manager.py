@@ -87,7 +87,7 @@ class Go9x9_Dataset(Dataset):
             else :
                 fused_board = np.vstack(( fused_board, np.zeros((1,9,9)) ))
 
-        one_hot = np.zeros(84)
+        one_hot = np.zeros(82)
         one_hot[next_move] = 1
         label = winner_color*np.exp((1-number_moves_left)/9)*one_hot
 
