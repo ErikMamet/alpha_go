@@ -15,7 +15,8 @@ class GoCNN(nn.Module):
         super(GoCNN, self).__init__()
 
         # nb channels = couleur qui doit joueur + nb_channels - 1 derniers coups
-        self.conv2D = nn.Conv2d(in_channels=nb_channels, out_channels=32, kernel_size=3, padding=0)
+        self.conv1_2D = nn.Conv2d(in_channels=nb_channels, out_channels=32, kernel_size=3, padding=1)
+        self.conv2D = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.conv1D_head = nn.Conv1d(in_channels=32, out_channels=1, kernel_size=1)
         self.conv1D_policy = nn.Conv1d(in_channels=32, out_channels=2, kernel_size=1)
         self.batch_norm2D = nn.BatchNorm2d(32)
@@ -33,34 +34,35 @@ class GoCNN(nn.Module):
         self.value_loss = nn.MSELoss()
         self.policy_loss = nn.CrossEntropyLoss()
 
-        self.loss_function = self.value_loss + self.policy_loss + self.regularization
+        #self.loss_function = self.value_loss + self.policy_loss + self.regularization
                 
     def forward(self, x):
         # -- Convolutionnal part --#
         # Bloc 1
-        x1 = self.conv2D(x)
-        x1 = self.batch_norm(x1)
+        x1 = self.conv1_2D(x)
+        x1 = self.batch_norm2D(x1)
         x1 = self.relu(x1)
         # Bloc 2
         x2 = self.conv2D(x1)
-        x2 = self.batch_norm(x2)
+        x2 = self.batch_norm2D(x2)
         # Je crois qu'il faut passer x, mais dcp pas sûr de cmt on gère les dimensions
+        print("x2 and x shape :", x2.size(), x.size())
         x2 = torch.cat((x2, x), dim=1)
         x2 = self.relu(x2)
         # Bloc 3
         x3 = self.conv2D(x2)
-        x3 = self.batch_norm(x3)
+        x3 = self.batch_norm2D(x3)
         x3 = self.relu(x3)
         # Bloc 4
         x4 = self.conv2D(x3)
-        x4= self.batch_norm(x4)
+        x4= self.batch_norm2D(x4)
         x4 = torch.cat((x4, x), dim=1)
         x4 = self.relu(x4)
         # x4 = info obtenue par les couches de convolution et utilisée pr prédire 2 prochaines valeurs
 
         # -- Value head part --#
         value = self.conv1D_head(x4)
-        value = self.batchnorm(value)  # batchnorm 2D ou 1D
+        value = self.batch_norm2D(value)  # batchnorm 2D ou 1D
         value = self.relu(value)
         value = self.fc_head1(value)
         value = self.relu(value)
