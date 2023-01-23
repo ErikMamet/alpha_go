@@ -22,9 +22,10 @@ class GoCNN(nn.Module):
         self.batch_norm_value = nn.BatchNorm2d(1)
         self.batch_norm_policy = nn.BatchNorm2d(2)
         self.relu = nn.ReLU()
-        self.fc_value1 = nn.Linear(in_features=32*9*9, out_features=256)
+        self.flaten = torch.nn.Flatten()
+        self.fc_value1 = nn.Linear(in_features=9*9, out_features=256)
         self.fc_value2 = nn.Linear(in_features=256, out_features=1)
-        self.fc_policy = nn.Linear(in_features=32*2*9*9, out_features=9*9+1)
+        self.fc_policy = nn.Linear(in_features=2*9*9, out_features=9*9+1)
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax()
 
@@ -63,7 +64,8 @@ class GoCNN(nn.Module):
         value = self.batch_norm_value(value)
         value = self.relu(value)
         # On applique le flatten sur notre variable 'value' avant de le donner à la couche dense
-        value = self.fc_value1(value.view(-1))
+        value = self.flaten(value)
+        value = self.fc_value1(value)
         value = self.relu(value)
         value = self.fc_value2(value)
         value = self.tanh(value)  # 1 valeur entre -1 et 1
@@ -72,7 +74,8 @@ class GoCNN(nn.Module):
         policy = self.conv2D_policy(x4)
         policy = self.batch_norm_policy(policy)
         policy = self.relu(policy)
-        policy = self.fc_policy(policy.view(-1))
+        policy = self.flaten(policy)
+        policy = self.fc_policy(policy)
         policy = self.softmax(policy)
 
-        return value, policy
+        return policy, value

@@ -6,8 +6,6 @@ import pickle
 import torchvision.transforms as T
 
 from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
 
 
 
@@ -64,7 +62,6 @@ class Go9x9_Dataset(Dataset):
         
         game_id, board_id = self.calc_game_board_id(idx)
         board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id))
-        print(board_path)
         with open(board_path, 'rb') as handle:
             Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
             Board = np.reshape(Board, (9,9))
@@ -77,7 +74,6 @@ class Go9x9_Dataset(Dataset):
         for i in range(self.size_of_input):
             if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
-                print(board_path)
                 with open(board_path, 'rb') as handle:
                     Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
                     Old_Board = np.reshape(Old_Board, (1,9,9))
@@ -85,25 +81,23 @@ class Go9x9_Dataset(Dataset):
                 fused_board = np.vstack(( fused_board, Old_Board))
             else :
                 fused_board = np.vstack(( fused_board, np.zeros((1,9,9)) ))
-            print("fused board shape ", np.shape(fused_board))
 
         one_hot = np.zeros(82)
         one_hot[next_move] = 1
-        label = winner_color*np.exp((1-number_moves_left)/9)*one_hot
+        policy = one_hot
 
         if self.transform:
             fused_board = np.swapaxes(fused_board, 0, 1 )
             fused_board = np.swapaxes(fused_board, 1, 2 )
             fused_board = self.transform(fused_board)
-            print("fused board shape tensor ", fused_board.size())
-
+        label = [policy, winner_color*np.exp((1-number_moves_left)/9)]
         return fused_board.type(torch.FloatTensor) , label
 
 
 if __name__ == "__main__":
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
-    print(D.__getitem__(10)[0].size())
+    print(D.__getitem__(10))
 
     #Erreur ligne 86 et 88 sur le np.stack - à quoi sert le fused_board j'ai pas capté ?
     #On importe deux fois la première board, on peut éventuellement faire le premier fuse avant la boucle for

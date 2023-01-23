@@ -1,0 +1,18 @@
+New training : 
+for epoch 1 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
+for epoch 2 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
+for epoch 3 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 4 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch -1 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
+for epoch 0 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
+for epoch 1 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 2 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 3 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 4 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch -1 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
+for epoch 0 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 1 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 2 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 3 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch 4 ; avg training acc : 0.8888888888888888; avg training loss : 0.0; testing accuracy : -1
+for epoch -1 ; avg training acc : 0.0; avg training loss : 0.0; testing accuracy : -1
