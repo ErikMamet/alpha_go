@@ -27,7 +27,7 @@ class GoCNN(nn.Module):
         self.fc_value2 = nn.Linear(in_features=256, out_features=1)
         self.fc_policy = nn.Linear(in_features=2*9*9, out_features=9*9+1)
         self.tanh = nn.Tanh()
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
         '''
         self.value_loss = nn.MSELoss()
@@ -45,7 +45,6 @@ class GoCNN(nn.Module):
         x2 = self.conv2D32(x1)
         x2 = self.batch_norm2D(x2)
         # Je crois qu'il faut passer x, mais dcp pas sûr de cmt on gère les dimensions
-        print("x2 and x shape :", x2.size(), x.size())
         x2 = torch.cat((x2, x), dim=1)
         x2 = self.relu(x2)
         # Bloc 3

@@ -79,6 +79,8 @@ def create_all_boards():
         else: 
             invalid_moves += 1
         i = i + 1
+        if (i == 20):
+            exit()
     print("Valid boards : ", valid_games)
     print("Invalid boards : ", invalid_games)
     print("Invalid moves : ", invalid_moves)
@@ -86,7 +88,8 @@ def create_all_boards():
 
 def save_board(board, n_game: str, n_state: str):
     '''Save one board with pickle'''
-    filename = "data/dataset/game_{}/state_{}".format(n_game, n_state)
+    print("Board", board)
+    filename = "data/mini_dataset/game_{}/state_{}".format(n_game, n_state)
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with(open(filename, "wb" )) as fp:
         pickle.dump(board, fp)

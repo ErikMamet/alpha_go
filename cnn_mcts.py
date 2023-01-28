@@ -4,6 +4,8 @@ import copy
 import Goban
 import numpy as np
 import time
+from go_cnn import GoCNN
+import torch
 
 '''
 QUESTION:
@@ -22,8 +24,9 @@ class Node:
         self.terminal_score = 0
         self.color = color #0 if Black, 1 if White
         self.moves = copy.deepcopy(move)
+        self.probas = None
         
-    def expand(self, board:Goban.Board):
+    def expand(self, board:Goban.Board, model:GoCNN):
         '''Création de chaque enfant avec le rollout et backpropagation associée'''
         #On push les moves actuel du noeud
         for move in self.moves:
@@ -39,36 +42,48 @@ class Node:
             self.children.append(child)
             child.is_terminal = board.is_game_over()
             if (child.is_terminal):
-                result = board.result()
-                score = self.get_result_score(result, child.color)
-                child.terminal_score = score
-            else: score = child.rollout()
-            child.increase_score(score)
+               result = board.result()
+               score = self.get_result_score(result, child.color)
+               child.terminal_score = score
+               child.increase_score(score)
             board.pop()
-        for i in range(len(self.moves)):
+        for _ in range(len(self.moves)):
             board.pop()
+        #Select best child
+        best_child = self.select_child(model)
+        score = best_child.rollout(model)
+        best_child.increase_score(score)
 
-    def rollout(self):
+
+    def rollout(self, model:GoCNN):
+        inputs = []
         board = Goban.Board()
-        for move in self.moves:
-            board.push(move)
-        while (board.is_game_over() == False):
-            moves = board.weak_legal_moves()
-            is_legal = False
-            while(is_legal == False):
-                probabilities = np.random.uniform(size=len(moves))
-                valid = board.push(moves[np.argmax(probabilities)])
-                if not valid:
-                    board.pop()
-                else: is_legal = True
-        result = board.result()
-        score = self.get_result_score(result, self.color)
+        missing_boards = 6 - len(self.moves)
+        if missing_boards > 0:
+            for _ in range(missing_boards):
+                inputs.append(copy.deepcopy(np.reshape(board._board, (9,9))))
+        idx = len(self.moves)
+        while len(inputs) < 6:
+            for i in range(idx):
+                board.push(self.moves[i])
+            idx -= 1
+            inputs.append(copy.deepcopy(np.reshape(board._board, (9,9))))
+            board = Goban.Board()
+        inputs = np.reshape(inputs,(1,6,9,9))
+        inputs = torch.FloatTensor(inputs)
+        policy, value = model(inputs)
+        #best_move = np.argmax(policy.detach().cpu().numpy()[0])
+        self.probas = policy.detach().cpu().numpy()[0]
+        if (value.item() < 0): winner = -1
+        elif (value.item() > 0): winner = 1
+        else: winner = 0
+        score = self.get_result_score(winner, self.color)
         return score
 
     def get_result_score(self, result, color):
-        if (result == "1-0"): winner = 2 #White wins
-        elif (result == "0-1"): winner = 1 #Black wins
-        else: winner = 0 #Deuce 
+        if result == -1: winner = 1 #black wins
+        elif result == 1: winner = 2 #white wins
+        else: winner = 0 #Deuce
 
         #On passe de 0 et 1 à 1 et 2 avec le +1
         if (winner == color+1): score = 1 #Victoire
@@ -77,9 +92,10 @@ class Node:
         return(score)
         
 
-    def __score__(self, child) -> float:
-        param = math.sqrt(2) * math.sqrt((math.log(self.visit)/child.visit))
-        score = (child.score / child.visit) + param
+    def __score__(self, child, proba) -> float:
+        param = 4 * proba * math.sqrt((math.log(self.visit)/(1+child.visit)))
+        #param = math.sqrt(2) * proba * math.sqrt((math.log(self.visit)/(1+child.visit)))
+        score = (child.score / (1+child.visit)) + param
         return score
 
     def increase_score(self, score):
@@ -91,14 +107,35 @@ class Node:
             actual_node.parent.visit += 1
             actual_node = actual_node.parent
 
+    def select_child(self, model):
+        '''Sélection du meilleur enfant selon le compromis exploration/exploitation
+        https://fr.wikipedia.org/wiki/Recherche_arborescente_Monte-Carlo
+        '''
+        if (self.probas is None): 
+            score = self.rollout(model)
+            self.increase_score(score)
+        best_node = None
+        best_score = -1
+        for i in range(len(self.children)):
+            #if self.children[i].is_terminal == False:
+            score = self.__score__(self.children[i], self.probas[self.children[i].moves[-1]])
+            if score > best_score:
+                best_score = score
+                best_node = self.children[i]
+        return best_node
+
 class MCTS:
-    def __init__(self, root_node: Node, max_depth = 10, max_time = 300):
+
+    def __init__(self, root_node: Node, model: GoCNN, max_depth = 10, max_time = 300):
         self.root = root_node
         self.max_depth = max_depth
         self.board = Goban.Board()
         self.start_time = time.time()
         self.elapsed_time = 0
         self.max_time = max_time
+        self.model = model
+        score = self.root.rollout(self.model)
+        self.root.increase_score(score)
 
     def play(self):
         '''Boucle de jeu'''
@@ -107,31 +144,17 @@ class MCTS:
         while (depth < self.max_depth and self.elapsed_time < self.max_time):
             print("new iteration, elapsed time is :", self.elapsed_time)
             while (self.actual_node.children != []):
-                self.actual_node = self.select_child(self.actual_node)
+                self.actual_node = self.actual_node.select_child(self.model)
             if (self.actual_node.is_terminal == True):
                 print("pass")
                 self.actual_node.increase_score(self.actual_node.terminal_score)
             else:
-                self.actual_node.expand(self.board)
+                self.actual_node.expand(self.board, self.model)
             depth = depth+1
             self.actual_node = self.root
             self.elapsed_time = time.time() - self.start_time
-        print("end, elapsed time :", self.elapsed_time)
+        print("end, elapsed time :", self.elapsed_time, "itération :", depth)
 
-            
-    def select_child(self, node: Node):
-        '''Sélection du meilleur enfant selon le compromis exploration/exploitation
-        https://fr.wikipedia.org/wiki/Recherche_arborescente_Monte-Carlo
-        '''
-        best_node = None
-        best_score = -1
-        for child in node.children:
-            if child.is_terminal == False:
-                score = node.__score__(child)
-                if score > best_score:
-                    best_score = score
-                    best_node = child
-        return best_node
 
     def best_node(self):
         '''On retourne l'enfant de la racine qui a été le plus visité.'''
@@ -144,12 +167,19 @@ class MCTS:
         return node_to_return
 
 if __name__ == '__main__':
-    root = Node(None, 1)
-    mcts = MCTS(root, 50)
+    model = GoCNN(6)
+    model.load_state_dict(torch.load("log/10000_checkpoint_epoch_50"))
+
+    root = Node(None, -1, [])
+    mcts = MCTS(root, model, 10000, 30)
     mcts.play()
     for child in root.children:
         print(child.moves[-1])
         print(Goban.Board.flat_to_name(child.moves[-1]), " - ", child.score, "/", child.visit)
+    for i in range(len(root.children)):
+            #if self.children[i].is_terminal == False:
+        score = root.__score__(root.children[i], root.probas[root.children[i].moves[-1]])
+        print(Goban.Board.flat_to_name(root.children[i].moves[-1]), " - ", score, " - proba :", root.probas[root.children[i].moves[-1]])
     best_node = mcts.best_node()
     print(Goban.Board.flat_to_name(best_node.moves[-1]), " - ", best_node.score, "/", best_node.visit)
 

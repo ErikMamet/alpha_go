@@ -4,6 +4,7 @@ import os
 import os.path as osp
 import pickle
 import torchvision.transforms as T
+import time
 
 from torch.utils.data import Dataset
 
@@ -42,7 +43,8 @@ class Go9x9_Dataset(Dataset):
         self.data_dir = data_dir
         self.transform = transform
         self.target_transform = target_transform
-        self.nb_games = len(os.listdir(data_dir))
+        #self.nb_games = len(os.listdir(data_dir))
+        self.nb_games = 80000
         self.nb_states_games = calc_nb_state_games(data_dir, self.nb_games)
         self.size_of_input = size_of_input
 
@@ -59,18 +61,24 @@ class Go9x9_Dataset(Dataset):
         return sum(self.nb_states_games)
 
     def __getitem__(self, idx):
-        
+        #print("START IMPORT ITEM")
+        tt = time.time()
         game_id, board_id = self.calc_game_board_id(idx)
         board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id))
+        t = time.time()
         with open(board_path, 'rb') as handle:
             Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
             Board = np.reshape(Board, (9,9))
+
+        #print("STEP1", time.time() - t)
 
         if last_player_color == -1:
             fused_board = np.zeros((1,9,9))
         if last_player_color == 1:
             fused_board = np.ones((1,9,9))
         
+        t = time.time()
+
         for i in range(self.size_of_input):
             if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
@@ -82,6 +90,8 @@ class Go9x9_Dataset(Dataset):
             else :
                 fused_board = np.vstack(( fused_board, np.zeros((1,9,9)) ))
 
+        #print("STEP3", time.time() - t)
+
         one_hot = np.zeros(82)
         one_hot[next_move] = 1
         policy = one_hot
@@ -90,7 +100,10 @@ class Go9x9_Dataset(Dataset):
             fused_board = np.swapaxes(fused_board, 0, 1 )
             fused_board = np.swapaxes(fused_board, 1, 2 )
             fused_board = self.transform(fused_board)
-        label = [policy, winner_color*np.exp((1-number_moves_left)/9)]
+        #label = [policy, winner_color*np.exp((1-number_moves_left)/9)]
+        label = [policy, winner_color]
+
+        #print("END IMPORT AFTER", time.time() - tt)
         return fused_board.type(torch.FloatTensor) , label
 
 
@@ -98,11 +111,6 @@ if __name__ == "__main__":
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
     print(D.__getitem__(10))
-
-    #Erreur ligne 86 et 88 sur le np.stack - à quoi sert le fused_board j'ai pas capté ?
-    #On importe deux fois la première board, on peut éventuellement faire le premier fuse avant la boucle for
-    #et faire la boucle for en range (1:self.size_of_input)
-
 
 
 

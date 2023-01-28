@@ -1,8 +1,11 @@
 import Goban
 import numpy as np
 import matplotlib.pyplot as plt
-from mcts import Node, MCTS
+from cnn_mcts import Node, MCTS
+from multi_cnn_mcts import Multi_MCTS
 from playerInterface import *
+from go_cnn import GoCNN
+import torch
 
 
 class myPlayer(PlayerInterface):
@@ -38,11 +41,13 @@ class myPlayer(PlayerInterface):
         The result of this function must be one element of [Board.flat_to_name(m) for m in b.legal_moves()]
         (it has to be legal, so at the end, weak_legal_moves() may not be sufficient here.)
         '''
-
         root = Node(None, self._mycolor-1, self.move)
-        mcts = MCTS(root,5)
-        mcts.play()
-        best_node = mcts.best_node()
+        #mcts = MCTS(root, model, 1000, 30)
+        multi_mcts = Multi_MCTS(root,10000,60)
+        #mcts = MCTS(root,5)
+        #mcts.play()
+        #best_node = mcts.best_node()
+        best_node = multi_mcts.main()
         self.move.append(best_node.moves[-1])
         return Goban.Board.flat_to_name(best_node.moves[-1]) 
 
