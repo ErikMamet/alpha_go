@@ -58,19 +58,35 @@ class Node:
     def rollout(self, model:GoCNN):
         inputs = []
         board = Goban.Board()
-        missing_boards = 6 - len(self.moves)
-        if missing_boards > 0:
-            for _ in range(missing_boards):
-                inputs.append(copy.deepcopy(np.reshape(board._board, (9,9))))
+        missing_boards = 5 - len(self.moves)
+        if (self.color == 0):
+            zeros_matrix = np.zeros((9,9))
+            inputs.append(zeros_matrix)
+        else:
+            attila_matrix = np.ones((9,9))
+            inputs.append(attila_matrix)
+
         idx = len(self.moves)
+        if len(self.moves) > 6: remaining_moves=6
+        else: remaining_moves = idx
+
         while len(inputs) < 6:
-            for i in range(idx):
-                board.push(self.moves[i])
-            idx -= 1
-            inputs.append(copy.deepcopy(np.reshape(board._board, (9,9))))
-            board = Goban.Board()
+            if (remaining_moves != 0):
+                for i in range(idx):
+                    board.push(self.moves[i])
+                idx -= 1
+                print(type(board))
+                print(board._board)
+                print(np.reshape(board._board, (9,9)))
+                inputs.append(np.reshape(board._board, (9,9)))
+                board = Goban.Board()
+                remaining_moves -= 1
+            else:
+                inputs.append(copy.deepcopy(np.reshape(board._board, (9,9))))
+
         inputs = np.reshape(inputs,(1,6,9,9))
         inputs = torch.FloatTensor(inputs)
+        print(inputs)
         policy, value = model(inputs)
         #best_move = np.argmax(policy.detach().cpu().numpy()[0])
         self.probas = policy.detach().cpu().numpy()[0]
@@ -78,6 +94,7 @@ class Node:
         elif (value.item() > 0): winner = 1
         else: winner = 0
         score = self.get_result_score(winner, self.color)
+        exit()
         return score
 
     def get_result_score(self, result, color):
@@ -142,11 +159,11 @@ class MCTS:
         self.actual_node = self.root
         depth = 0
         while (depth < self.max_depth and self.elapsed_time < self.max_time):
-            print("new iteration, elapsed time is :", self.elapsed_time)
+            #print("new iteration, elapsed time is :", self.elapsed_time)
             while (self.actual_node.children != []):
                 self.actual_node = self.actual_node.select_child(self.model)
             if (self.actual_node.is_terminal == True):
-                print("pass")
+                #print("pass")
                 self.actual_node.increase_score(self.actual_node.terminal_score)
             else:
                 self.actual_node.expand(self.board, self.model)
@@ -168,18 +185,21 @@ class MCTS:
 
 if __name__ == '__main__':
     model = GoCNN(6)
-    model.load_state_dict(torch.load("log/10000_checkpoint_epoch_50"))
+    model.load_state_dict(torch.load("log/80000_checkpoint_epoch_50"))
+    moves = [16,60,15]
 
-    root = Node(None, -1, [])
-    mcts = MCTS(root, model, 10000, 30)
-    mcts.play()
-    for child in root.children:
-        print(child.moves[-1])
-        print(Goban.Board.flat_to_name(child.moves[-1]), " - ", child.score, "/", child.visit)
-    for i in range(len(root.children)):
-            #if self.children[i].is_terminal == False:
-        score = root.__score__(root.children[i], root.probas[root.children[i].moves[-1]])
-        print(Goban.Board.flat_to_name(root.children[i].moves[-1]), " - ", score, " - proba :", root.probas[root.children[i].moves[-1]])
-    best_node = mcts.best_node()
-    print(Goban.Board.flat_to_name(best_node.moves[-1]), " - ", best_node.score, "/", best_node.visit)
+    for i in range(1):
+        print(moves)
+        root = Node(None, -1, moves)
+        mcts = MCTS(root, model, 10000, 15)
+        mcts.play()
+        print("PROBAS",root.probas)
+        print("MAX", np.max(root.probas), "at ", np.argmax(root.probas))
+        for i in range(len(root.children)):
+                #if self.children[i].is_terminal == False:
+            score = root.__score__(root.children[i], root.probas[root.children[i].moves[-1]])
+            print(root.children[i].moves[-1], " : ", Goban.Board.flat_to_name(root.children[i].moves[-1]), " - ", score, " - ", root.children[i].score, "/", root.children[i].visit, " - proba :", root.probas[root.children[i].moves[-1]])
+        best_node = mcts.best_node()
+        #print(Goban.Board.flat_to_name(best_node.moves[-1]), " - ", best_node.score, "/", best_node.visit)
+        moves.append(best_node.moves[-1])
 
