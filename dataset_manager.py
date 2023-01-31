@@ -5,6 +5,7 @@ import os.path as osp
 import pickle
 import torchvision.transforms as T
 import time
+from go_cnn import GoCNN
 
 from torch.utils.data import Dataset
 
@@ -43,8 +44,8 @@ class Go9x9_Dataset(Dataset):
         self.data_dir = data_dir
         self.transform = transform
         self.target_transform = target_transform
-        #self.nb_games = len(os.listdir(data_dir))
-        self.nb_games = 80000
+        self.nb_games = len(os.listdir(data_dir))
+        #self.nb_games = 80000
         self.nb_states_games = calc_nb_state_games(data_dir, self.nb_games)
         self.size_of_input = size_of_input
 
@@ -83,7 +84,9 @@ class Go9x9_Dataset(Dataset):
             if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
                 with open(board_path, 'rb') as handle:
-                    Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
+                    Old_Board, winner_color, last_player_color, old_next_move, number_moves_left = pickle.load(handle)
+                    print(Old_Board)
+                    print("next move", old_next_move)
                     Old_Board = np.reshape(Old_Board, (1,9,9))
                 
                 fused_board = np.vstack(( fused_board, Old_Board))
@@ -108,9 +111,19 @@ class Go9x9_Dataset(Dataset):
 
 
 if __name__ == "__main__":
+    model = GoCNN(6)
+    model.load_state_dict(torch.load("log/80000_checkpoint_epoch_50"))
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
-    print(D.__getitem__(10))
+    item = D.__getitem__(5)
+    print("---")
+    print(item[1])
+    print("---")
+    policy, value = model(np.reshape(item[0],(1,6,9,9)))
+    print(policy)
+    print(value)
+    print("max", torch.max(policy), "argmax", torch.argmax(policy))
+    
 
 
 
