@@ -74,9 +74,7 @@ class Go9x9_Dataset(Dataset):
         t = time.time()
         with open(board_path, 'rb') as handle:
             Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
-            print("flat board :", Board)
             Board = np.reshape(Board, (9,9))
-            print("sqare board :", Board)
 
 
         #print("STEP1", time.time() - t)
