@@ -44,7 +44,7 @@ class Go9x9_Dataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         #self.nb_games = len(os.listdir(data_dir))
-        self.nb_games = 80000
+        self.nb_games = 20
         self.nb_states_games = calc_nb_state_games(data_dir, self.nb_games)
         self.size_of_input = size_of_input
 
@@ -68,12 +68,15 @@ class Go9x9_Dataset(Dataset):
         t = time.time()
         with open(board_path, 'rb') as handle:
             Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
+            print("flat board :", Board)
             Board = np.reshape(Board, (9,9))
+            print("sqare board :", Board)
+
 
         #print("STEP1", time.time() - t)
 
-        if last_player_color == -1:
-            fused_board = np.zeros((1,9,9))
+        if last_player_color == 0:
+            fused_board = np.ones((1,9,9))
         if last_player_color == 1:
             fused_board = np.ones((1,9,9))
         
@@ -84,6 +87,8 @@ class Go9x9_Dataset(Dataset):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
                 with open(board_path, 'rb') as handle:
                     Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
+                    print("old_board", np.flip(Old_Board))
+                    print("nest move", next_move)
                     Old_Board = np.reshape(Old_Board, (1,9,9))
                 
                 fused_board = np.vstack(( fused_board, Old_Board))
@@ -92,10 +97,10 @@ class Go9x9_Dataset(Dataset):
 
         #print("STEP3", time.time() - t)
 
-        one_hot = np.zeros(82)
+        one_hot = np.zeros(83)
         one_hot[next_move] = 1
         policy = one_hot
-
+        print("next move", one_hot)
         if self.transform:
             fused_board = np.swapaxes(fused_board, 0, 1 )
             fused_board = np.swapaxes(fused_board, 1, 2 )

@@ -72,7 +72,7 @@ class Board:
         if fcoord == -1:
             return (-1, -1)
         d = divmod(fcoord, Board._BOARDSIZE)
-        return d[1], d[0]
+        return d[1], d[0] #x,y
 
     @staticmethod
     def name_to_coord(s):
