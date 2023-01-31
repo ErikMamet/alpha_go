@@ -5,8 +5,8 @@ import os.path as osp
 import pickle
 import torchvision.transforms as T
 import time
-from go_cnn import GoCNN
 
+import copy
 from torch.utils.data import Dataset
 
 
@@ -36,6 +36,11 @@ def calc_nb_state_games(dataset_dir, nb_games):
         res.append(len(os.listdir(osp.join(dataset_dir,"game_"+str(i)))))
     return res
 
+def extract_boards(board):
+    board_w, board_b = board.copy(), board.copy()
+    board_w[board == 1] = 0
+    board_b[board == 2] = 0
+    return board_w, board_b
 
 transf = T.ToTensor()
 
@@ -44,8 +49,8 @@ class Go9x9_Dataset(Dataset):
         self.data_dir = data_dir
         self.transform = transform
         self.target_transform = target_transform
-        self.nb_games = len(os.listdir(data_dir))
-        #self.nb_games = 80000
+        #self.nb_games = len(os.listdir(data_dir))
+        self.nb_games = 20
         self.nb_states_games = calc_nb_state_games(data_dir, self.nb_games)
         self.size_of_input = size_of_input
 
@@ -82,25 +87,39 @@ class Go9x9_Dataset(Dataset):
             fused_board = np.ones((1,9,9))
         
         t = time.time()
+        fused_boardb = 15*np.ones((1,9,9))
+        fused_boardw = 15*np.ones((1,9,9))
 
         for i in range(self.size_of_input):
+            print(board_id - i)
             if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
                 with open(board_path, 'rb') as handle:
-<<<<<<< HEAD
                     Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
-                    print("old_board", np.flip(Old_Board))
-                    print("nest move", next_move)
-=======
-                    Old_Board, winner_color, last_player_color, old_next_move, number_moves_left = pickle.load(handle)
-                    print(Old_Board)
-                    print("next move", old_next_move)
->>>>>>> a661cd6b7d5ddcd7a8dd593ab9ac99c6e967932e
-                    Old_Board = np.reshape(Old_Board, (1,9,9))
+                    
+                    board_w, board_b = extract_boards(Old_Board)
+            
+                    board_w, board_b = np.reshape(board_w, (1,9,9)), np.reshape(board_b, (1,9,9))
                 
-                fused_board = np.vstack(( fused_board, Old_Board))
+                if fused_boardb[0][0][0] == 15 : 
+                    fused_boardw = board_w
+                    fused_boardb = board_b
+                else:
+                    fused_boardw = np.vstack(( fused_boardw, board_w))
+                    fused_boardb = np.vstack(( fused_boardb, board_b))
+
             else :
-                fused_board = np.vstack(( fused_board, np.zeros((1,9,9)) ))
+                if fused_boardb[0] == 15 : 
+
+                    fused_boardw = np.zeros((1,9,9))
+                    fused_boardb = np.zeros((1,9,9))
+                else :
+                    fused_boardw = np.vstack(( fused_boardw, np.zeros((1,9,9)) ))
+                    fused_boardb = np.vstack(( fused_boardb, np.zeros((1,9,9)) ))
+        
+        fused_board = np.vstack((fused_board, fused_boardw))
+        fused_board = np.vstack((fused_board, fused_boardb))
+        print(np.shape(fused_board))
 
         #print("STEP3", time.time() - t)
 
@@ -120,19 +139,9 @@ class Go9x9_Dataset(Dataset):
 
 
 if __name__ == "__main__":
-    model = GoCNN(6)
-    model.load_state_dict(torch.load("log/80000_checkpoint_epoch_50"))
     DATASET_PATH = "./data/mini_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
-    item = D.__getitem__(5)
-    print("---")
-    print(item[1])
-    print("---")
-    policy, value = model(np.reshape(item[0],(1,6,9,9)))
-    print(policy)
-    print(value)
-    print("max", torch.max(policy), "argmax", torch.argmax(policy))
-    
+    print(D.__getitem__(10))
 
 
 
