@@ -15,9 +15,9 @@ class GoCNN(nn.Module):
         # nb channels = couleur qui doit joueur + nb_channels - 1 derniers coups
         self.conv2D6 = nn.Conv2d(in_channels=nb_channels, out_channels=32, kernel_size=3, padding=1, stride=1)
         self.conv2D32 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1, stride=1)
-        self.conv2D38 = nn.Conv2d(in_channels=38, out_channels=32, kernel_size=3, padding=1, stride=1)
-        self.conv2D_value = nn.Conv2d(in_channels=38, out_channels=1, kernel_size=1)
-        self.conv2D_policy = nn.Conv2d(in_channels=38, out_channels=2, kernel_size=1)
+        self.conv2D43 = nn.Conv2d(in_channels=43, out_channels=32, kernel_size=3, padding=1, stride=1)
+        self.conv2D_value = nn.Conv2d(in_channels=43, out_channels=1, kernel_size=1)
+        self.conv2D_policy = nn.Conv2d(in_channels=43, out_channels=2, kernel_size=1)
         self.batch_norm2D = nn.BatchNorm2d(32)
         self.batch_norm_value = nn.BatchNorm2d(1)
         self.batch_norm_policy = nn.BatchNorm2d(2)
@@ -48,7 +48,7 @@ class GoCNN(nn.Module):
         x2 = torch.cat((x2, x), dim=1)
         x2 = self.relu(x2)
         # Bloc 3
-        x3 = self.conv2D38(x2)
+        x3 = self.conv2D43(x2)
         x3 = self.batch_norm2D(x3)
         x3 = self.relu(x3)
         # Bloc 4

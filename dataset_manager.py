@@ -37,6 +37,7 @@ def calc_nb_state_games(dataset_dir, nb_games):
     return res
 
 def extract_boards(board):
+
     board_w, board_b = board.copy(), board.copy()
     board_w[board == 1] = 0
     board_b[board == 2] = 0
@@ -50,7 +51,7 @@ class Go9x9_Dataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         #self.nb_games = len(os.listdir(data_dir))
-        self.nb_games = 20
+        self.nb_games = 9500
         self.nb_states_games = calc_nb_state_games(data_dir, self.nb_games)
         self.size_of_input = size_of_input
 
@@ -78,23 +79,20 @@ class Go9x9_Dataset(Dataset):
 
 
         #print("STEP1", time.time() - t)
-
-        if last_player_color == 0:
-            fused_board = np.ones((1,9,9))
         if last_player_color == 1:
             fused_board = np.ones((1,9,9))
-        
+        if last_player_color == -1:
+            fused_board = np.zeros((1,9,9))
         t = time.time()
         fused_boardb = 15*np.ones((1,9,9))
         fused_boardw = 15*np.ones((1,9,9))
 
         for i in range(self.size_of_input):
-            print(board_id - i)
             if (board_id - i > 0):
                 board_path = osp.join(self.data_dir, "game_"+str(game_id), "state_"+str(board_id-i))
                 with open(board_path, 'rb') as handle:
                     Old_Board, winner_color, last_player_color, next_move, number_moves_left = pickle.load(handle)
-                    
+                    assert type(Old_Board) == np.ndarray
                     board_w, board_b = extract_boards(Old_Board)
             
                     board_w, board_b = np.reshape(board_w, (1,9,9)), np.reshape(board_b, (1,9,9))
@@ -107,7 +105,7 @@ class Go9x9_Dataset(Dataset):
                     fused_boardb = np.vstack(( fused_boardb, board_b))
 
             else :
-                if fused_boardb[0] == 15 : 
+                if fused_boardb[0][0][0]  == 15 : 
 
                     fused_boardw = np.zeros((1,9,9))
                     fused_boardb = np.zeros((1,9,9))
@@ -117,14 +115,12 @@ class Go9x9_Dataset(Dataset):
         
         fused_board = np.vstack((fused_board, fused_boardw))
         fused_board = np.vstack((fused_board, fused_boardb))
-        print(np.shape(fused_board))
 
         #print("STEP3", time.time() - t)
 
-        one_hot = np.zeros(83)
+        one_hot = np.zeros(82)
         one_hot[next_move] = 1
         policy = one_hot
-        print("next move", one_hot)
         if self.transform:
             fused_board = np.swapaxes(fused_board, 0, 1 )
             fused_board = np.swapaxes(fused_board, 1, 2 )
@@ -132,12 +128,11 @@ class Go9x9_Dataset(Dataset):
         #label = [policy, winner_color*np.exp((1-number_moves_left)/9)]
         label = [policy, winner_color]
 
-        #print("END IMPORT AFTER", time.time() - tt)
         return fused_board.type(torch.FloatTensor) , label
 
 
 if __name__ == "__main__":
-    DATASET_PATH = "./data/mini_dataset"
+    DATASET_PATH = "./data/moyen_dataset"
     D = Go9x9_Dataset(DATASET_PATH)
     print(D.__getitem__(10))
 
